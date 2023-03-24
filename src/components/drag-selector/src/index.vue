@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Coord } from './type'
 
 type DefaultProps = {
@@ -34,7 +34,7 @@ const boxColor = computed(() => props.boxColor || 'rgba(0, 184, 92, .5)')
 //   }, {} as {[key: string]: Element})
 // })
 
-const getCoords = (e: MouseEvent) => ({
+const getCoords = (e: MouseEvent | Touch) => ({
   x: e.clientX - containerRect.value.left,
   y: e.clientY - containerRect.value.top
 });
@@ -46,11 +46,11 @@ const getDimensions = (startCoord: Coord, endCoord: Coord) => {
   }
 }
 
-const collisionCheck = (node1: DOMRect, node2: DOMRect) => {
-  return node1.left < node2.left + node2.width &&
-  node1.left + node1.width > node2.left &&
-  node1.top < node2.top + node2.height &&
-  node1.top + node1.height > node2.top;
+const collisionCheck = (boxRect: DOMRect, nodeRect: DOMRect) => {
+  return boxRect.left < nodeRect.right &&
+  boxRect.right > nodeRect.left &&
+  boxRect.top < nodeRect.bottom &&
+  boxRect.bottom > nodeRect.top
 }
 
 const getDiffNodeKeys = (preNodeKeys: string[], curNodeKeys: string[]) => {
@@ -101,17 +101,17 @@ const intersection = () => {
 }
 
 // mouse
-const handleStartDrag = (e: MouseEvent) => {
+const handleStartDrag = (e: MouseEvent | Touch) => {
   startCoord.value = getCoords(e)
   selectingBoxRef.value.style.top = `${startCoord.value.y}px`
   selectingBoxRef.value.style.left = `${startCoord.value.x}px`
 
   document.addEventListener('mousemove', handleDrag)
-  // document.addEventListener('touch', handleTouchMove)
+  document.addEventListener('touchmove', handleTouchMove)
 
 }
 
-const handleDrag = (e: MouseEvent) => {
+const handleDrag = (e: MouseEvent | Touch) => {
   endCoord.value = getCoords(e)
   const dimensions = getDimensions(startCoord.value, endCoord.value)
 
@@ -122,15 +122,19 @@ const handleDrag = (e: MouseEvent) => {
   if(endCoord.value.y < startCoord.value.y) {
     selectingBoxRef.value.style.top = `${endCoord.value.y}px`
   }
-  selectingBoxRef.value.style.width = dimensions.width + "px";
-  selectingBoxRef.value.style.height = dimensions.height + "px";
-
-  // intersection()
+  selectingBoxRef.value.style.width = `${dimensions.width}px`
+  selectingBoxRef.value.style.height = `${dimensions.height}px`
 }
 
 // touch
-const handleTouchStart = (e: TouchEvent) =>{}
-const handleTouchMove = () => {}
+const handleTouchStart = (e: TouchEvent) => {
+  e.preventDefault();
+  handleStartDrag(e.touches[0]);
+}
+const handleTouchMove = (e: TouchEvent) => {
+  e.preventDefault();
+  handleDrag(e.touches[0]);
+}
 
 const handleEndDrag = () => {
   intersection()
@@ -147,20 +151,30 @@ const handleEndDrag = () => {
 
   preSelectedNodeKeys.value = JSON.parse(JSON.stringify(selectedNodeKeys.value))
 
-  document.removeEventListener("mousemove", handleDrag);
-  document.removeEventListener("touchmove", handleTouchMove);
+  document.removeEventListener('mousemove', handleDrag);
+  document.removeEventListener('touchmove', handleTouchMove);
 }
 
 
 
 onMounted(() => {
   containerRef.value = document.getElementById('x-drag-selector')
-  containerRef.value.addEventListener("mousedown", handleStartDrag);
-  containerRef.value.addEventListener("touchstart", handleTouchStart);
+  containerRef.value.addEventListener('mousedown', handleStartDrag);
+  containerRef.value.addEventListener('touchstart', handleTouchStart);
 
 
-  document.addEventListener("mouseup", handleEndDrag);
-  document.addEventListener("touchend", handleEndDrag);
+  document.addEventListener('mouseup', handleEndDrag);
+  document.addEventListener('touchend', handleEndDrag);
+
+  // document.removeEventListener('mousemove', handleDrag);
+  // document.removeEventListener('touchmove', handleTouchMove);
+
+  onUnmounted(() => {
+    containerRef.value.removeEventListener('mousedown', handleStartDrag);
+    containerRef.value.removeEventListener('touchstart', handleTouchStart);
+    document.removeEventListener('mouseup', handleEndDrag);
+    document.removeEventListener('touchend', handleEndDrag);
+  })
 })
 </script>
 
