@@ -1,30 +1,54 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { Ref, ref } from 'vue';
+import DragSelector from './components/drag-selector'
+
+type NodeData = {
+  value: any,
+  index: number
+}
+
+const nodeValues = ref<NodeData[]>([])
+
+const createNumberArr = (max: number) => {
+  const arr = []
+  let count = 0
+  while(count < max) {
+    arr.push({
+      value: count,
+      index: count
+    })
+    count++
+  }
+  return arr
+}
+
+nodeValues.value = createNumberArr(20)
+
 </script>
 
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div class="container">
+    <drag-selector>
+      <div v-for="({ value, index}) in nodeValues" :key="value" :data-key="index" class="item">
+        {{ value }}
+      </div>
+    </drag-selector>
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.container {
+  width: 50%;
+  margin: auto;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+.item {
+  width: 50px;
+  height: 30px;
+  text-align: center;
+  line-height: 30px;
+  border: 1px solid #ededed;
+  border-radius: 4px;
+  display: inline-block;
+  margin: 5px 5px;
 }
 </style>
